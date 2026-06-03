@@ -8,3 +8,4 @@ langchain-text-splitters
 pypdf
 numpy<2.2
 requests==2.32.4
+python-dotenv
