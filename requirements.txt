@@ -1,0 +1,10 @@
+gradio
+openai
+supabase
+langchain
+langchain-openai
+langchain-community==0.3.3
+langchain-text-splitters
+pypdf
+numpy<2.2
+requests==2.32.4
