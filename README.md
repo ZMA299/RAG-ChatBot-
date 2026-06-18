@@ -1,213 +1,106 @@
-# Axion RAG Chatbot
+# Axion RAG Chatbot, Senior Refactor
 
-A Retrieval-Augmented Generation (RAG) chatbot built with:
-
-- OpenAI GPT-4o Mini
-- OpenAI Embeddings
-- Supabase Vector Database
-- Gradio UI
-- PDF Knowledge Base
-- Voice-to-Text Support
-
-The chatbot retrieves relevant information from uploaded PDF documents stored in Supabase and uses OpenAI models to generate accurate responses.
-
----
-
-## Features
-
-- PDF document ingestion
-- Semantic search using embeddings
-- Retrieval-Augmented Generation (RAG)
-- Chat history storage in Supabase
-- Voice transcription support
-- Streaming AI responses
-- REST API endpoint
-- Arabic and English language support
-
----
-
-## Architecture
+This version keeps the working behavior of the original bot but separates the system into production-style components:
 
 ```text
 User
- │
- ▼
-Gradio UI
- │
- ▼
-OpenAI Embeddings
- │
- ▼
-Supabase Vector Search
- │
- ▼
-Retrieved PDF Chunks
- │
- ▼
-GPT-4o Mini
- │
- ▼
-Answer
+ ↓
+Gradio UI / API
+ ↓
+Intake Agent
+- language detection
+- small-talk routing
+- document-question routing
+ ↓
+Retrieval Agent
+- FAQ semantic search
+- PDF vector search
+ ↓
+Response Agent
+- GPT-4o Mini grounded answer generation
+ ↓
+Grounding Validator
+- checks if retrieved context exists
+- prevents unsupported answers
+ ↓
+Supabase Logging
+- user message
+- assistant message
+- latency
+- route
+- confidence
+ ↓
+Final Answer
 ```
 
----
+## Why there is no medical Safety Agent
+
+The Pharmaceutical Support AI example needs a Safety Agent because medical answers can harm users. This Axion bot is not a medical/pharma assistant, so the medical Safety Agent is replaced by a domain-neutral **Grounding Validator**.
+
+The validator checks whether the answer is supported by retrieved FAQ/PDF context and forces a fallback when the knowledge base does not contain enough information.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `app.py` | Gradio UI, API endpoint, streaming chat orchestration |
+| `config.py` | Environment variables and runtime settings |
+| `schemas.py` | Shared typed data structures |
+| `utils.py` | Language detection, history formatting, confidence helpers |
+| `database.py` | Supabase gateway for logs, FAQ search, PDF search |
+| `ingestion.py` | PDF and FAQ ingestion pipelines |
+| `agents.py` | Intake, retrieval, response, grounding, and orchestration logic |
+| `requirements.txt` | Python dependencies |
+| `.env.example` | Environment variable template |
+| `supabase_schema.sql` | Optional reference SQL for tables and RPCs |
 
 ## Environment Variables
 
-Create a `.env` file:
+Create `.env`:
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
-
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your_supabase_key
 ```
 
-Do NOT commit `.env` to GitHub.
-
----
-
-## Installation
-
-Clone the repository:
-
-```bash
-git clone https://github.com/YOUR_USERNAME/AxionBot.git
-cd AxionBot
-```
-
-Install dependencies:
+## Run
 
 ```bash
 pip install -r requirements.txt
-```
-
-Create `.env`:
-
-```bash
-cp .env.example .env
-```
-
-Add your credentials and run:
-
-```bash
 python app.py
 ```
 
----
+## API
 
-## Required Supabase Tables
-
-### chat_sessions
-
-| Column | Type |
-|----------|----------|
-| id | uuid |
-| title | text |
-
-### chat_messages
-
-| Column | Type |
-|----------|----------|
-| id | uuid |
-| session_id | uuid |
-| role | text |
-| content | text |
-| latency_s | numeric |
-
-### rag_documents
-
-| Column | Type |
-|----------|----------|
-| id | uuid |
-| filename | text |
-
-### rag_chunks
-
-| Column | Type |
-|----------|----------|
-| id | uuid |
-| document_id | uuid |
-| chunk_index | integer |
-| page | integer |
-| content | text |
-| embedding | vector |
-
----
-
-## Supabase RPC Function
-
-The application expects a PostgreSQL function named:
-
-```sql
-match_rag_chunks
-```
-
-This function should perform vector similarity search on the `rag_chunks` table.
-
----
-
-## API Endpoint
-
-The application exposes:
+The app exposes a Gradio API endpoint:
 
 ```http
 POST /chat
 ```
 
-Example:
-
-```json
-{
-  "message": "What services does Axion provide?"
-}
-```
-
-Response:
+Example response:
 
 ```json
 {
   "answer": "...",
-  "latency": "1.25s",
-  "sources_pages": [1, 2]
+  "latency": "2.20s (FAQ 0.31s, RAG 0.42s, LLM 1.47s)",
+  "sources_pages": [1, 2],
+  "confidence": 0.87,
+  "route": "pdf_rag",
+  "grounded": true
 }
 ```
 
----
+## Professional Architecture Notes
 
-## Supported Languages
+This architecture is more professional than a single-script RAG bot because it separates responsibilities:
 
-- English
-- Arabic
+- **Intake Agent** decides how the user message should be handled.
+- **Retrieval Agent** owns FAQ and PDF retrieval.
+- **Response Agent** owns answer generation.
+- **Grounding Validator** prevents unsupported answers.
+- **Database Gateway** isolates Supabase calls.
+- **Ingestion Service** isolates document processing.
 
-The chatbot automatically detects the language of the user's message and responds accordingly.
-
----
-
-## Tech Stack
-
-- Python
-- Gradio
-- OpenAI GPT-4o Mini
-- OpenAI Embeddings
-- Supabase
-- LangChain
-- PyPDFLoader
-
----
-
-## Security
-
-Never commit:
-
-- `.env`
-- OpenAI API keys
-- Supabase Service Role keys
-
-Use environment variables and GitHub Secrets when deploying.
-
----
-
-## License
-
-MIT License
+This is still lightweight enough for a student or MVP project, because naturally we are not building a nuclear reactor just to answer company FAQs.
