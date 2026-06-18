@@ -1,4 +1,4 @@
-# Axion RAG Chatbot, Senior Refactor
+# Axion RAG Chatbot V2
 
 This version keeps the working behavior of the original bot but separates the system into production-style components:
 
@@ -33,11 +33,6 @@ Supabase Logging
 Final Answer
 ```
 
-## Why there is no medical Safety Agent
-
-The Pharmaceutical Support AI example needs a Safety Agent because medical answers can harm users. This Axion bot is not a medical/pharma assistant, so the medical Safety Agent is replaced by a domain-neutral **Grounding Validator**.
-
-The validator checks whether the answer is supported by retrieved FAQ/PDF context and forces a fallback when the knowledge base does not contain enough information.
 
 ## Files
 
@@ -103,4 +98,4 @@ This architecture is more professional than a single-script RAG bot because it s
 - **Database Gateway** isolates Supabase calls.
 - **Ingestion Service** isolates document processing.
 
-This is still lightweight enough for a student or MVP project, because naturally we are not building a nuclear reactor just to answer company FAQs.
+
